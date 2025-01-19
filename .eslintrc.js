@@ -23,5 +23,6 @@ module.exports = {
     'no-console': 'off',
     'no-underscore-dangle': ['error', { allow: ['_id'] }],
     'import/no-unresolved': [2, { commonjs: true }],
+    'import/extensions': ['error', 'never'],
   },
 };
