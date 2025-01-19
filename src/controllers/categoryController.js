@@ -1,12 +1,24 @@
 const Category = require('../models/category');
+const Note = require('../models/note');
 const logger = require('../utils/logger');
+
+function buildCategoryTree(categories, parentId = null) {
+  return categories
+    .filter((category) =>
+      parentId ? category.parentId?.toString() === parentId.toString() : !category.parentId
+    )
+    .map((category) => ({
+      ...category.toObject(),
+      children: buildCategoryTree(categories, category._id),
+    }));
+}
 
 async function createCategory(req, res) {
   try {
     if (req.body.parentId) {
-      const parentCategory = await Category.findById(req.body.parentId);
-      if (!parentCategory) {
-        logger.warn('Attempt to create a category with a non-existent parent', {
+      const parentExists = await Category.exists({ _id: req.body.parentId });
+      if (!parentExists) {
+        logger.warn('Attempt to create category with non-existent parent', {
           parentId: req.body.parentId,
         });
         return res.status(400).json({
@@ -18,69 +30,132 @@ async function createCategory(req, res) {
     const category = new Category(req.body);
     await category.save();
 
-    logger.info('Category successfully created', { categoryId: category._id });
+    logger.info('Category created successfully', { categoryId: category._id });
     return res.status(201).json(category);
   } catch (error) {
     if (error.code === 11000) {
-      logger.warn('Attempt to create a category with an existing name', {
+      logger.warn('Attempt to create category with duplicate name', {
         name: req.body.name,
-        parentId: req.body.parentId,
       });
       return res.status(400).json({
-        error: 'Category with this name already exists at this level',
+        error: 'Category with this name already exists',
       });
     }
 
     logger.error('Error creating category:', error);
-    return res.status(400).json({ error: error.message });
+    return res.status(500).json({ error: 'Error creating category' });
   }
 }
 
 async function getCategories(req, res) {
   try {
-    const categories = await Category.find({}).sort({ order: 1, name: 1 });
+    const { flat = false, page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
 
-    const categoryTree = categories.reduce((tree, category) => {
-      if (!category.parentId) {
-        tree.push({
-          ...category.toObject(),
-          children: categories
-            .filter((c) => c.parentId?.toString() === category._id.toString())
-            .map((child) => ({
-              ...child.toObject(),
-              children: categories.filter((c) => c.parentId?.toString() === child._id.toString()),
-            })),
-        });
-      }
-      return tree;
-    }, []);
+    const query = Category.find();
 
-    logger.info('Categories successfully retrieved');
+    if (flat) {
+      const categories = await query.skip(skip).limit(limit).sort({ order: 1, name: 1 });
+
+      const total = await Category.countDocuments();
+
+      return res.status(200).json({
+        categories,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalCategories: total,
+      });
+    }
+    const allCategories = await query.sort({ order: 1, name: 1 });
+    const categoryTree = buildCategoryTree(allCategories);
     return res.status(200).json(categoryTree);
   } catch (error) {
-    logger.error('Error retrieving category list:', error);
-    return res.status(500).json({ error: error.message });
+    logger.error('Error fetching categories:', error);
+    return res.status(500).json({ error: 'Error fetching categories' });
+  }
+}
+
+async function getCategoryById(req, res) {
+  try {
+    const category = await Category.findById(req.params.id);
+
+    if (!category) {
+      logger.warn('Attempt to fetch non-existent category', {
+        categoryId: req.params.id,
+      });
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    return res.status(200).json(category);
+  } catch (error) {
+    logger.error('Error fetching category:', error);
+    return res.status(500).json({ error: 'Error fetching category' });
+  }
+}
+
+async function getCategoryPath(req, res) {
+  try {
+    const category = await Category.findById(req.params.id);
+
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    const path = await category.getPath();
+    return res.status(200).json(path);
+  } catch (error) {
+    logger.error('Error getting category path:', error);
+    return res.status(500).json({ error: 'Error getting category path' });
+  }
+}
+
+async function getCategoryNotes(req, res) {
+  try {
+    const { id } = req.params;
+    const { includeSubcategories = false, page = 1, limit = 10 } = req.query;
+
+    const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    let categoryIds = [id];
+    if (includeSubcategories) {
+      const subcategories = await Category.find({
+        $or: [{ _id: id }, { parentId: id }],
+      });
+      categoryIds = subcategories.map((cat) => cat._id);
+    }
+
+    const notes = await Note.find({ category: { $in: categoryIds } })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ updatedAt: -1 });
+
+    const total = await Note.countDocuments({
+      category: { $in: categoryIds },
+    });
+
+    return res.status(200).json({
+      notes,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalNotes: total,
+    });
+  } catch (error) {
+    logger.error('Error fetching category notes:', error);
+    return res.status(500).json({
+      error: 'Error fetching category notes',
+    });
   }
 }
 
 async function updateCategory(req, res) {
   try {
     if (req.body.parentId === req.params.id) {
-      logger.warn('Attempt to set a category as its own parent', {
-        categoryId: req.params.id,
-      });
       return res.status(400).json({
-        error: 'A category cannot be its own parent',
+        error: 'Category cannot be its own parent',
       });
-    }
-
-    if (req.body.parentId) {
-      const parentCategory = await Category.findById(req.body.parentId);
-      if (!parentCategory) {
-        return res.status(400).json({
-          error: 'Parent category not found',
-        });
-      }
     }
 
     const category = await Category.findByIdAndUpdate(
@@ -90,54 +165,76 @@ async function updateCategory(req, res) {
     );
 
     if (!category) {
-      logger.warn('Attempt to update a non-existent category', {
-        categoryId: req.params.id,
-      });
       return res.status(404).json({ error: 'Category not found' });
     }
 
-    logger.info('Category successfully updated', { categoryId: category._id });
+    logger.info('Category updated successfully', { categoryId: category._id });
     return res.status(200).json(category);
   } catch (error) {
     logger.error('Error updating category:', error);
-    return res.status(400).json({ error: error.message });
+    return res.status(500).json({ error: 'Error updating category' });
   }
 }
 
 async function deleteCategory(req, res) {
   try {
-    const childCategories = await Category.find({ parentId: req.params.id });
-    if (childCategories.length > 0) {
-      logger.warn('Attempt to delete a category with child elements', {
-        categoryId: req.params.id,
-        childCount: childCategories.length,
-      });
+    const { force = false } = req.query;
+    const category = await Category.findById(req.params.id);
+
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    const hasSubcategories = await Category.exists({ parentId: req.params.id });
+    if (hasSubcategories && !force) {
       return res.status(400).json({
-        error: 'Cannot delete a category that contains subcategories',
+        error: 'Cannot delete category containing subcategories',
       });
     }
 
-    const category = await Category.findById(req.params.id);
-    if (!category) {
-      logger.warn('Attempt to delete a non-existent category', {
-        categoryId: req.params.id,
-      });
-      return res.status(404).json({ error: 'Category not found' });
+    if (hasSubcategories && force) {
+      await Category.deleteMany({ parentId: req.params.id });
     }
 
     await category.deleteOne();
 
-    logger.info('Category successfully deleted', { categoryId: req.params.id });
-    return res.status(200).json({ message: 'Category successfully deleted' });
+    logger.info('Category deleted successfully', { categoryId: req.params.id });
+    return res.status(200).json({
+      message: 'Category deleted successfully',
+    });
   } catch (error) {
     logger.error('Error deleting category:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Error deleting category' });
+  }
+}
+
+async function reorderCategories(req, res) {
+  try {
+    const { orders } = req.body;
+
+    await Promise.all(
+      orders.map(({ id, order }) => Category.findByIdAndUpdate(id, { $set: { order } }))
+    );
+
+    logger.info('Categories order updated successfully');
+    return res.status(200).json({
+      message: 'Categories order updated successfully',
+    });
+  } catch (error) {
+    logger.error('Error reordering categories:', error);
+    return res.status(500).json({
+      error: 'Error reordering categories',
+    });
   }
 }
 
 module.exports = {
   createCategory,
   getCategories,
+  getCategoryById,
   updateCategory,
   deleteCategory,
+  getCategoryNotes,
+  reorderCategories,
+  getCategoryPath,
 };
