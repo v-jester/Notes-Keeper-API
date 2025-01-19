@@ -1,21 +1,46 @@
 const express = require('express');
+const {
+  validate,
+  categoryValidationRules,
+  commonValidationRules,
+} = require('../middleware/validation');
+const {
+  createCategory,
+  getCategories,
+  getCategoryById,
+  updateCategory,
+  deleteCategory,
+  getCategoryNotes,
+  reorderCategories,
+  getCategoryPath,
+} = require('../controllers/categoryController');
 
 const router = express.Router();
 
-router.get('/', (_req, res) => {
-  res.status(200).json({ message: 'Get all categories - Not implemented yet' });
-});
+router.post('/', categoryValidationRules.create, validate, createCategory);
 
-router.post('/', (_req, res) => {
-  res.status(201).json({ message: 'Create category - Not implemented yet' });
-});
+router.get('/', commonValidationRules.pagination, validate, getCategories);
 
-router.put('/:id', (_req, res) => {
-  res.status(200).json({ message: 'Update category - Not implemented yet' });
-});
+router.get('/:id', commonValidationRules.checkId, validate, getCategoryById);
 
-router.delete('/:id', (_req, res) => {
-  res.status(200).json({ message: 'Delete category - Not implemented yet' });
-});
+router.get('/:id/path', commonValidationRules.checkId, validate, getCategoryPath);
+
+router.get(
+  '/:id/notes',
+  [commonValidationRules.checkId, commonValidationRules.pagination],
+  validate,
+  getCategoryNotes
+);
+
+router.put(
+  '/:id',
+  [commonValidationRules.checkId, categoryValidationRules.update],
+  validate,
+  updateCategory
+);
+
+router.delete('/:id', commonValidationRules.checkId, validate, deleteCategory);
+
+router.patch('/reorder', categoryValidationRules.reorder, validate, reorderCategories);
 
 module.exports = router;
