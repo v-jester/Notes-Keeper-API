@@ -5,12 +5,15 @@ Notes Keeper API is a RESTful service designed for personal note management, pro
 ## Project Overview
 
 ### Vision Statement
+
 We aim to create a universal and reliable note management platform that can serve as a foundation for various client applications - from simple note-taking tools to complex knowledge management systems. By leveraging MongoDB's document-oriented architecture, we provide flexible and efficient data storage that adapts to evolving user needs.
 
 ### Key Features
+
 Our service offers a comprehensive set of capabilities for working with notes:
 
 #### Note Management
+
 - Create notes with rich text formatting
 - Read and update existing notes
 - Soft delete with recovery options
@@ -19,6 +22,7 @@ Our service offers a comprehensive set of capabilities for working with notes:
 - Version history tracking
 
 #### Organization and Categorization
+
 - Flexible tagging system
 - Hierarchical categories
 - Note collections
@@ -26,6 +30,7 @@ Our service offers a comprehensive set of capabilities for working with notes:
 - Full-text search capabilities using MongoDB Atlas Search
 
 #### Search and Filtering
+
 - Content-based full-text search
 - Advanced filtering options
 - Tag and category-based queries
@@ -36,6 +41,7 @@ Our service offers a comprehensive set of capabilities for working with notes:
 #### Data Models
 
 ##### Note Document
+
 ```javascript
 {
   _id: ObjectId,
@@ -62,11 +68,10 @@ Our service offers a comprehensive set of capabilities for working with notes:
 }
 ```
 
-
-
 #### Technology Stack
 
 ##### Core Technologies
+
 - Runtime: Node.js 20.x
 - Framework: Express.js 4.x
 - Database: MongoDB 7.x
@@ -74,6 +79,7 @@ Our service offers a comprehensive set of capabilities for working with notes:
 - Caching: MongoDB Cache (built-in)
 
 ##### Development Tools
+
 - Version Control: Git
 - Linter: ESLint with Airbnb style guide
 - Formatting: Prettier
@@ -81,6 +87,7 @@ Our service offers a comprehensive set of capabilities for working with notes:
 - API Documentation: OpenAPI 3.0
 
 ##### Monitoring and Logging
+
 - Logging: Winston
 - Monitoring: MongoDB Atlas monitoring
 - Performance: MongoDB Compass
@@ -89,6 +96,7 @@ Our service offers a comprehensive set of capabilities for working with notes:
 ### API Endpoints
 
 #### Notes Management
+
 ```http
 POST   /api/v1/notes              # Create a new note
 GET    /api/v1/notes              # Retrieve notes list
@@ -101,6 +109,7 @@ GET    /api/v1/notes/search       # Full-text search in notes
 ```
 
 #### Tags Management
+
 ```http
 GET    /api/v1/tags               # Get tags list
 POST   /api/v1/tags               # Create new tag
@@ -110,6 +119,7 @@ GET    /api/v1/tags/:id/notes     # Get notes by tag
 ```
 
 #### Categories Management
+
 ```http
 GET    /api/v1/categories         # Get categories list
 POST   /api/v1/categories         # Create new category
@@ -122,12 +132,14 @@ DELETE /api/v1/categories/:id     # Delete category
 Our project follows these key principles:
 
 1. Clean Architecture
+
    - Separation of concerns with clear layers
    - Business logic independence
    - Framework agnostic core
    - Dependency injection
 
 2. SOLID Principles
+
    - Single Responsibility Principle
    - Open/Closed Principle
    - Liskov Substitution Principle
@@ -135,6 +147,7 @@ Our project follows these key principles:
    - Dependency Inversion Principle
 
 3. MongoDB Best Practices
+
    - Proper indexing strategy
    - Efficient document schema design
    - Atomic operations usage
@@ -151,6 +164,7 @@ Our project follows these key principles:
 ### Deployment
 
 #### Environment Requirements
+
 - Node.js 20.x or higher
 - MongoDB 7.x or higher
-- Docker and Docker Compose 
+- Docker and Docker Compose
