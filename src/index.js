@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 
+const categoryRoutes = require('./routes/categoryRoutes');
+
 dotenv.config();
 
 const app = express();
@@ -24,14 +26,11 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-app.use((err, req, res, next) => {
+app.use('/api/v1/categories', categoryRoutes);
+
+app.use((err, req, res) => {
   console.error(err.stack);
-
-  if (res.headersSent) {
-    return next(err);
-  }
-
-  return res.status(500).json({ error: 'Something went wrong!' });
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
 app.listen(PORT, () => {

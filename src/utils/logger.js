@@ -1,20 +1,27 @@
-const winston = require('winston');
-const config = require('../config');
+const logger = {
+  info: (message, meta = {}) => {
+    console.log(
+      JSON.stringify({ level: 'info', message, ...meta, timestamp: new Date().toISOString() })
+    );
+  },
 
-const logFormat = winston.format.combine(
-  winston.format.timestamp(),
-  winston.format.errors({ stack: true }),
-  winston.format.json()
-);
+  error: (message, error = {}) => {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        message,
+        error: error.message || error,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+      })
+    );
+  },
 
-const logger = winston.createLogger({
-  level: config.logger.level,
-  format: logFormat,
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
-    }),
-  ],
-});
+  warn: (message, meta = {}) => {
+    console.warn(
+      JSON.stringify({ level: 'warn', message, ...meta, timestamp: new Date().toISOString() })
+    );
+  },
+};
 
 module.exports = logger;

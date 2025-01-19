@@ -11,7 +11,6 @@ const {
   updateCategory,
   deleteCategory,
   getCategoryNotes,
-  reorderCategories,
   getCategoryPath,
 } = require('../controllers/categoryController');
 
@@ -40,7 +39,5 @@ router.put(
 );
 
 router.delete('/:id', commonValidationRules.checkId, validate, deleteCategory);
-
-router.patch('/reorder', categoryValidationRules.reorder, validate, reorderCategories);
 
 module.exports = router;
