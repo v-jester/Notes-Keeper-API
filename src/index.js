@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 
 const categoryRoutes = require('./routes/categoryRoutes');
+const noteRoutes = require('./routes/noteRoutes');
+const tagRoutes = require('./routes/tagRoutes');
 
 dotenv.config();
 
@@ -22,15 +24,20 @@ mongoose
     process.exit(1);
   });
 
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
-});
+app.get('/health', (req, res) =>
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() })
+);
 
 app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/notes', noteRoutes);
+app.use('/api/v1/tags', tagRoutes);
 
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+  if (res.headersSent) {
+    return next(err);
+  }
+  return res.status(500).json({ error: 'Something went wrong!' });
 });
 
 app.listen(PORT, () => {

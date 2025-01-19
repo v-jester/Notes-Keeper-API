@@ -1,5 +1,5 @@
 const express = require('express');
-const { validate, tagValidationRules } = require('../middleware/validation');
+const { validate, tagValidationRules, commonValidationRules } = require('../middleware/validation');
 const {
   createTag,
   getTags,
@@ -11,9 +11,18 @@ const {
 const router = express.Router();
 
 router.post('/', tagValidationRules.create, validate, createTag);
-router.get('/', getTags);
-router.put('/:id', tagValidationRules.update, validate, updateTag);
-router.delete('/:id', deleteTag);
-router.get('/:id/notes', getNotesByTag);
+
+router.get('/', commonValidationRules.pagination, validate, getTags);
+
+router.put('/:id', [commonValidationRules.checkId, tagValidationRules.update], validate, updateTag);
+
+router.delete('/:id', commonValidationRules.checkId, validate, deleteTag);
+
+router.get(
+  '/:id/notes',
+  [commonValidationRules.checkId, commonValidationRules.pagination],
+  validate,
+  getNotesByTag
+);
 
 module.exports = router;

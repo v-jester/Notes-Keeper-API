@@ -23,16 +23,17 @@ async function getNotes(req, res) {
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ updatedAt: -1 })
-      .exec();
+      .populate('category', 'name')
+      .populate('tags', 'name color');
 
-    const count = await Note.countDocuments(query);
+    const total = await Note.countDocuments(query);
 
     logger.info('Notes retrieved successfully');
     return res.status(200).json({
       notes,
-      totalPages: Math.ceil(count / limit),
       currentPage: page,
-      totalNotes: count,
+      totalPages: Math.ceil(total / limit),
+      totalNotes: total,
     });
   } catch (error) {
     logger.error('Error retrieving notes:', error);
@@ -42,7 +43,10 @@ async function getNotes(req, res) {
 
 async function getNoteById(req, res) {
   try {
-    const note = await Note.findById(req.params.id);
+    const note = await Note.findById(req.params.id)
+      .populate('category', 'name')
+      .populate('tags', 'name color');
+
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
     }
@@ -61,7 +65,7 @@ async function updateNote(req, res) {
       req.params.id,
       { $set: req.body },
       { new: true, runValidators: true }
-    );
+    ).populate('category tags');
 
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
@@ -83,7 +87,7 @@ async function deleteNote(req, res) {
       return res.status(404).json({ error: 'Note not found' });
     }
 
-    logger.info('Note soft deleted successfully', { noteId: note._id });
+    logger.info('Note deleted successfully', { noteId: note._id });
     return res.status(200).json({ message: 'Note deleted successfully' });
   } catch (error) {
     logger.error('Error deleting note:', error);
@@ -126,7 +130,13 @@ async function restoreNote(req, res) {
 async function searchNotes(req, res) {
   try {
     const { q = '' } = req.query;
-    const notes = await Note.searchNotes(q);
+    const notes = await Note.find(
+      { $text: { $search: q }, status: { $ne: 'deleted' } },
+      { score: { $meta: 'textScore' } }
+    )
+      .sort({ score: { $meta: 'textScore' } })
+      .populate('category', 'name')
+      .populate('tags', 'name color');
 
     logger.info('Search performed successfully', { query: q });
     return res.status(200).json(notes);
