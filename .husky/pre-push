@@ -1,0 +1,27 @@
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🧪 Running Jest tests for changed files..."
+CHANGED_FILES=$(git diff --name-only --cached -- '*.js')
+
+if [ -n "$CHANGED_FILES" ]; then
+  npx jest --bail --findRelatedTests $CHANGED_FILES || {
+    echo "❌ Jest tests failed"
+    exit 1
+  }
+else
+  echo "❌ No JavaScript files changed, skipping Jest tests"
+fi
+
+echo "🔍 Running ESLint with fixes..."
+npx eslint . --fix || {
+  echo "❌ ESLint failed"
+  exit 1
+}
+
+echo "📝 Checking code formatting with Prettier..."
+npx prettier --check . || {
+  echo "❌ Prettier formatting check failed"
+  exit 1
+}
+
+echo "✅ All checks passed!"

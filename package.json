@@ -4,11 +4,14 @@
   "description": "Notes Keeper API is a RESTful service designed for personal note management, providing developers with a robust and scalable backend for building various note-taking applications. Built with MongoDB for flexible document storage, our service combines simplicity with powerful features to help users organize and manage their thoughts effectively.",
   "main": "index.js",
   "scripts": {
+    "build": "webpack --config webpack.config.js",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint:fix": "eslint --fix .",
     "prepare": "husky install"
   },
   "keywords": [],
@@ -30,5 +33,14 @@
     "lint-staged": "^15.4.1",
     "prettier": "^3.4.2",
     "supertest": "^7.0.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }
