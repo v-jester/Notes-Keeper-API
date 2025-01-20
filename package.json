@@ -4,7 +4,7 @@
   "description": "Notes Keeper API is a RESTful service designed for personal note management, providing developers with a robust and scalable backend for building various note-taking applications. Built with MongoDB for flexible document storage, our service combines simplicity with powerful features to help users organize and manage their thoughts effectively.",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
+    "build": "echo 'No build step required for Node.js app'",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest",
