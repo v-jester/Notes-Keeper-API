@@ -3,10 +3,14 @@ name: CI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -19,7 +23,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Check code formatting
         run: npm run format:check
@@ -32,6 +36,10 @@ jobs:
 
       - name: Check commit messages
         uses: wagoid/commitlint-github-action@v5
+        env:
+          NODE_PATH: ${{ github.workspace }}/node_modules
+        with:
+          configFile: ./commitlint.config.js
 
       - name: Build project
         run: npm run build
