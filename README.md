@@ -47,7 +47,7 @@ Our service offers a comprehensive set of capabilities for working with notes:
   _id: ObjectId,
   title: String,
   content: String,
-  status: String,  // enum: ['active', 'archived', 'deleted']
+  status: String,
   tags: [{
     _id: ObjectId,
     name: String,
@@ -67,6 +67,270 @@ Our service offers a comprehensive set of capabilities for working with notes:
   }
 }
 ```
+
+#### System Architecture Diagrams
+
+##### Component Architecture
+
+Our system follows a layered architecture pattern that promotes separation of concerns and maintainability. Below is a detailed component diagram showing the relationships between different layers and modules:
+
+```mermaid
+graph TB
+    subgraph External["External Layer"]
+        Client["Client Applications"]
+    end
+
+    subgraph API["Notes Keeper API"]
+        subgraph Presentation["Presentation Layer"]
+            Router["Router (Express.js)"]
+            Middleware["Middleware Layer"]
+            subgraph Controllers["Controllers"]
+                NoteController["Note Controller"]
+                TagController["Tag Controller"]
+                CategoryController["Category Controller"]
+            end
+        end
+
+        subgraph Business["Business Layer"]
+            subgraph Services["Service Layer"]
+                NoteService["Note Service"]
+                TagService["Tag Service"]
+                CategoryService["Category Service"]
+                SearchService["Search Service"]
+            end
+        end
+
+        subgraph Data["Data Access Layer"]
+            subgraph Repositories["Repository Layer"]
+                NoteRepo["Note Repository"]
+                TagRepo["Tag Repository"]
+                CategoryRepo["Category Repository"]
+            end
+        end
+
+        subgraph Infrastructure["Infrastructure Layer"]
+            Logger["Logging Service"]
+            Cache["Cache Service"]
+            Validation["Validation Service"]
+            ErrorHandler["Error Handler"]
+        end
+    end
+
+    subgraph Storage["Storage Layer"]
+        MongoDB[(MongoDB Database)]
+    end
+
+    %% Connections between layers
+    Client --> Router
+    Router --> Middleware
+    Middleware --> Controllers
+
+    NoteController --> NoteService
+    TagController --> TagService
+    CategoryController --> CategoryService
+
+    NoteService --> NoteRepo
+    TagService --> TagRepo
+    CategoryService --> CategoryRepo
+    NoteService --> SearchService
+
+    NoteRepo --> MongoDB
+    TagRepo --> MongoDB
+    CategoryRepo --> MongoDB
+
+    %% Infrastructure connections
+    Controllers --> Logger
+    Services --> Logger
+    Controllers --> ErrorHandler
+    Services --> Cache
+    Controllers --> Validation
+
+    %% Styling with black text
+    classDef external fill:#e9e9e9,stroke:#333,stroke-width:2px,color:#000
+    classDef presentation fill:#b7e3ff,stroke:#333,stroke-width:2px,color:#000
+    classDef business fill:#c9e7c9,stroke:#333,stroke-width:2px,color:#000
+    classDef data fill:#ffe0b7,stroke:#333,stroke-width:2px,color:#000
+    classDef infrastructure fill:#f5b7eb,stroke:#333,stroke-width:2px,color:#000
+    classDef storage fill:#d4d4d4,stroke:#333,stroke-width:2px,color:#000
+
+    class Client,External external
+    class Router,Middleware,NoteController,TagController,CategoryController presentation
+    class NoteService,TagService,CategoryService,SearchService business
+    class NoteRepo,TagRepo,CategoryRepo data
+    class Logger,Cache,Validation,ErrorHandler infrastructure
+    class MongoDB storage
+```
+
+The component diagram illustrates the following layers:
+
+1. External Layer: Client applications that consume our API
+2. Presentation Layer: Handles HTTP routing, middleware, and controller logic
+3. Business Layer: Contains core business logic in service components
+4. Data Access Layer: Manages data persistence through repositories
+5. Infrastructure Layer: Provides cross-cutting concerns like logging and caching
+6. Storage Layer: MongoDB database for persistent storage
+
+##### Entity Relationship Diagram
+
+The following diagram shows the complete data model with all entities and their relationships:
+
+```mermaid
+erDiagram
+    User ||--o{ Note : creates
+    User ||--o{ Tag : manages
+    User ||--o{ Category : manages
+    Note ||--o{ NoteVersion : has
+    Note ||--o{ NoteTag : has
+    Note ||--o| Category : belongs_to
+    Tag ||--o{ NoteTag : associated_with
+    Category ||--o| Category : has_parent
+    Note ||--o{ SharedNote : shared_with
+    User ||--o{ SharedNote : has_access_to
+
+    User {
+        ObjectId _id PK
+        String email UK
+        String username
+        String passwordHash
+        String role
+        Date lastLoginAt
+        Boolean isActive
+        Date createdAt
+        Date updatedAt
+    }
+
+    Note {
+        ObjectId _id PK
+        ObjectId userId FK
+        String title
+        String content
+        String contentType "markdown/plain/html"
+        String status "active/archived/deleted"
+        Boolean isPinned
+        Boolean isPublic
+        Number version
+        ObjectId categoryId FK
+        Date createdAt
+        Date updatedAt
+        Date deletedAt
+        String searchVector
+    }
+
+    NoteVersion {
+        ObjectId _id PK
+        ObjectId noteId FK
+        String title
+        String content
+        Number versionNumber
+        Date createdAt
+        ObjectId createdBy FK
+        String changeDescription
+    }
+
+    Tag {
+        ObjectId _id PK
+        ObjectId userId FK
+        String name UK
+        String color
+        String description
+        Date createdAt
+        Date updatedAt
+        Boolean isSystem
+    }
+
+    Category {
+        ObjectId _id PK
+        ObjectId userId FK
+        String name
+        ObjectId parentId FK
+        String description
+        String icon
+        Number order
+        Date createdAt
+        Date updatedAt
+    }
+
+    NoteTag {
+        ObjectId _id PK
+        ObjectId noteId FK
+        ObjectId tagId FK
+        Date addedAt
+        ObjectId addedBy FK
+    }
+
+    SharedNote {
+        ObjectId _id PK
+        ObjectId noteId FK
+        ObjectId userId FK
+        String permission "read/write"
+        Date sharedAt
+        ObjectId sharedBy FK
+        Date expiresAt
+    }
+```
+
+Key aspects of the data model:
+
+1. User Management
+
+   - Users can create and manage notes, tags, and categories
+   - Support for role-based access control
+   - Tracking of user activity and account status
+
+2. Note Management
+
+   - Rich content support with versioning
+   - Flexible status management (active/archived/deleted)
+   - Support for pinning and public sharing
+   - Full audit trail of changes
+
+3. Organization
+
+   - Hierarchical categories with ordering
+   - Flexible tagging system
+   - Note sharing with permissions
+   - Version control for note content
+
+4. Search and Discovery
+   - Full-text search capabilities
+   - Tag and category-based filtering
+   - Smart filters and dynamic grouping
+
+##### Note Creation Sequence
+
+The following sequence diagram illustrates the flow of creating a new note:
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant WL as Web Layer
+    participant CO as Controller
+    participant S as Service
+    participant R as Repository
+    participant DB as MongoDB
+    participant CA as Cache
+
+    C->>WL: POST /api/v1/notes
+    WL->>CO: createNote(dto)
+    CO->>S: validateAndCreate(note)
+    S->>R: save(note)
+    R->>DB: insert(document)
+    DB-->>R: document
+    R-->>S: note
+    S->>CA: invalidateRelated()
+    S-->>CO: created note
+    CO-->>WL: response
+    WL-->>C: 201 Created
+```
+
+This sequence shows:
+
+1. Request handling through the web layer
+2. Data validation and processing in controllers
+3. Business logic execution in services
+4. Data persistence through repositories
+5. Cache invalidation for consistency
+6. Response formatting and delivery
 
 #### Technology Stack
 
