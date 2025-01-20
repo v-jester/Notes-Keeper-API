@@ -1,10 +1,5 @@
 const express = require('express');
 const {
-  validate,
-  noteValidationRules,
-  commonValidationRules,
-} = require('../middleware/validation');
-const {
   createNote,
   getNotes,
   getNoteById,
@@ -17,25 +12,20 @@ const {
 
 const router = express.Router();
 
-router.post('/', noteValidationRules.create, validate, createNote);
+router.post('/', createNote);
 
-router.get('/', commonValidationRules.pagination, validate, getNotes);
+router.get('/', getNotes);
 
-router.get('/search', noteValidationRules.search, validate, searchNotes);
+router.get('/search', searchNotes);
 
-router.get('/:id', commonValidationRules.checkId, validate, getNoteById);
+router.get('/:id', getNoteById);
 
-router.put(
-  '/:id',
-  [commonValidationRules.checkId, noteValidationRules.update],
-  validate,
-  updateNote
-);
+router.put('/:id', updateNote);
 
-router.delete('/:id', commonValidationRules.checkId, validate, deleteNote);
+router.delete('/:id', deleteNote);
 
-router.patch('/:id/archive', commonValidationRules.checkId, validate, archiveNote);
+router.patch('/:id/archive', archiveNote);
 
-router.patch('/:id/restore', commonValidationRules.checkId, validate, restoreNote);
+router.patch('/:id/restore', restoreNote);
 
 module.exports = router;

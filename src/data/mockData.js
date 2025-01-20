@@ -1,5 +1,3 @@
-// src/data/mockData.js
-
 const mockData = {
   categories: [
     {

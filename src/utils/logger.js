@@ -1,7 +1,12 @@
 const logger = {
   info: (message, meta = {}) => {
     console.log(
-      JSON.stringify({ level: 'info', message, ...meta, timestamp: new Date().toISOString() })
+      JSON.stringify({
+        level: 'info',
+        message,
+        ...meta,
+        timestamp: new Date().toISOString(),
+      })
     );
   },
 
@@ -19,7 +24,12 @@ const logger = {
 
   warn: (message, meta = {}) => {
     console.warn(
-      JSON.stringify({ level: 'warn', message, ...meta, timestamp: new Date().toISOString() })
+      JSON.stringify({
+        level: 'warn',
+        message,
+        ...meta,
+        timestamp: new Date().toISOString(),
+      })
     );
   },
 };

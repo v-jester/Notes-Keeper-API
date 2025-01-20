@@ -1,11 +1,9 @@
-const Note = require('../models/note');
+const noteService = require('../services/noteService');
 const logger = require('../utils/logger');
 
 async function createNote(req, res) {
   try {
-    const note = new Note(req.body);
-    await note.save();
-
+    const note = noteService.createNote(req.body);
     logger.info('Note created successfully', { noteId: note._id });
     return res.status(201).json(note);
   } catch (error) {
@@ -16,25 +14,8 @@ async function createNote(req, res) {
 
 async function getNotes(req, res) {
   try {
-    const { page = 1, limit = 10, status } = req.query;
-    const query = status ? { status } : {};
-
-    const notes = await Note.find(query)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort({ updatedAt: -1 })
-      .populate('category', 'name')
-      .populate('tags', 'name color');
-
-    const total = await Note.countDocuments(query);
-
-    logger.info('Notes retrieved successfully');
-    return res.status(200).json({
-      notes,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit),
-      totalNotes: total,
-    });
+    const notes = noteService.getAllNotes(req.query);
+    return res.status(200).json(notes);
   } catch (error) {
     logger.error('Error retrieving notes:', error);
     return res.status(500).json({ error: error.message });
@@ -43,15 +24,12 @@ async function getNotes(req, res) {
 
 async function getNoteById(req, res) {
   try {
-    const note = await Note.findById(req.params.id)
-      .populate('category', 'name')
-      .populate('tags', 'name color');
+    const note = noteService.getNoteById(req.params.id);
 
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
     }
 
-    logger.info('Note retrieved successfully', { noteId: note._id });
     return res.status(200).json(note);
   } catch (error) {
     logger.error('Error retrieving note:', error);
@@ -61,11 +39,7 @@ async function getNoteById(req, res) {
 
 async function updateNote(req, res) {
   try {
-    const note = await Note.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
-      { new: true, runValidators: true }
-    ).populate('category tags');
+    const note = noteService.updateNote(req.params.id, req.body);
 
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
@@ -81,7 +55,7 @@ async function updateNote(req, res) {
 
 async function deleteNote(req, res) {
   try {
-    const note = await Note.findByIdAndUpdate(req.params.id, { status: 'deleted' }, { new: true });
+    const note = noteService.deleteNote(req.params.id);
 
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
@@ -97,7 +71,7 @@ async function deleteNote(req, res) {
 
 async function archiveNote(req, res) {
   try {
-    const note = await Note.findByIdAndUpdate(req.params.id, { status: 'archived' }, { new: true });
+    const note = noteService.archiveNote(req.params.id);
 
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
@@ -113,7 +87,7 @@ async function archiveNote(req, res) {
 
 async function restoreNote(req, res) {
   try {
-    const note = await Note.findByIdAndUpdate(req.params.id, { status: 'active' }, { new: true });
+    const note = noteService.restoreNote(req.params.id);
 
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
@@ -129,16 +103,7 @@ async function restoreNote(req, res) {
 
 async function searchNotes(req, res) {
   try {
-    const { q = '' } = req.query;
-    const notes = await Note.find(
-      { $text: { $search: q }, status: { $ne: 'deleted' } },
-      { score: { $meta: 'textScore' } }
-    )
-      .sort({ score: { $meta: 'textScore' } })
-      .populate('category', 'name')
-      .populate('tags', 'name color');
-
-    logger.info('Search performed successfully', { query: q });
+    const notes = noteService.searchNotes(req.query.q || '');
     return res.status(200).json(notes);
   } catch (error) {
     logger.error('Error searching notes:', error);

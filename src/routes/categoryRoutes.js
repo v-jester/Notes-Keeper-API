@@ -10,7 +10,6 @@ const {
   getCategoryById,
   updateCategory,
   deleteCategory,
-  getCategoryNotes,
   getCategoryPath,
 } = require('../controllers/categoryController');
 
@@ -23,13 +22,6 @@ router.get('/', commonValidationRules.pagination, validate, getCategories);
 router.get('/:id', commonValidationRules.checkId, validate, getCategoryById);
 
 router.get('/:id/path', commonValidationRules.checkId, validate, getCategoryPath);
-
-router.get(
-  '/:id/notes',
-  [commonValidationRules.checkId, commonValidationRules.pagination],
-  validate,
-  getCategoryNotes
-);
 
 router.put(
   '/:id',
